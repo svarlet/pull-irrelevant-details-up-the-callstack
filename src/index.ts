@@ -10,11 +10,9 @@ import {postgresConfig, PostgresConfig} from './PostgresConfig';
 export const readDbConfigFromFs = (): TaskEither<FsError, PostgresConfig> =>
   TE.right(postgresConfig(new URL('https://rds.aws.com/abc123')));
 
-export const fetchFullDenominationFromPostgres = (
-  dbConfig: PostgresConfig,
-  userId: string
-): TaskEither<HttpConnectionError | SqlError, string> =>
-  TE.left(httpConnectionError(400, "Irrelevant, I'm just forcing an error"));
+export const fetchFullDenominationFromPostgres = (dbConfig: PostgresConfig): (userId: string) => TaskEither<HttpConnectionError | SqlError, string> =>
+  (userId: string) => 
+    TE.left(httpConnectionError(400, "Irrelevant, I'm just forcing an error"));
 
 export const fetchTimeOfDayForUser = (
   dbConfig: PostgresConfig,
@@ -26,13 +24,13 @@ export const fetchTimeOfDayForUser = (
 
 export const greetByTimeOfDay = (
   userId: string,
-  fetchFullDenomination: (dbConfig: PostgresConfig) => TaskEither<HttpConnectionError | SqlError, string>,
+  fetchFullDenomination: (userId: string) => TaskEither<HttpConnectionError | SqlError, string>,
 ): TaskEither<HttpConnectionError | FsError | SqlError, string> =>
   pipe(
     TE.Do,
     TE.bind('dbConfig', () => readDbConfigFromFs()),
-    TE.bindW('fullDenomination', ({dbConfig}) =>
-      fetchFullDenomination(dbConfig)
+    TE.bindW('fullDenomination', () =>
+      fetchFullDenomination(userId)
     ),
     TE.bindW('timeOfDayForUser', ({dbConfig}) =>
       fetchTimeOfDayForUser(dbConfig, userId)
@@ -46,7 +44,8 @@ export const greetByTimeOfDay = (
 pipe(
   TE.Do,
   TE.bind('userId', () => TE.of('af8c4600-46a8-4b80-a4d3-9583b4f1085b')),
-  TE.bindW('greeting', ({userId}) => greetByTimeOfDay(userId, (dbConfig) => fetchFullDenominationFromPostgres(dbConfig, userId))),
+  TE.bind('dbConfig', () => readDbConfigFromFs()),
+  TE.bindW('greeting', ({userId, dbConfig}) => greetByTimeOfDay(userId, fetchFullDenominationFromPostgres(dbConfig))),
   TE.match(
     (error) =>
       console.error('Oops something went wrong: ' + JSON.stringify(error)),
