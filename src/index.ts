@@ -25,7 +25,6 @@ export const greetByTimeOfDay = (
 ): TaskEither<HttpConnectionError | FsError | SqlError, string> =>
   pipe(
     TE.Do,
-    TE.bind('dbConfig', () => readDbConfigFromFs()),
     TE.bindW('fullDenomination', () =>
       fetchFullDenomination(userId)
     ),
