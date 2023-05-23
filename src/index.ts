@@ -10,19 +10,25 @@ import {postgresConfig, PostgresConfig} from './PostgresConfig';
 export const readDbConfigFromFs = (): TaskEither<FsError, PostgresConfig> =>
   TE.right(postgresConfig(new URL('https://rds.aws.com/abc123')));
 
-export const fetchFullDenominationFromPostgres = (dbConfig: PostgresConfig): (userId: string) => TaskEither<HttpConnectionError | SqlError, string> =>
+// I don't know enough TypeScript yet to do this part correctly.
+// Turn this into an object and each "low-level" error has the responsibility
+// of turning itself into a TechnologyIntegrationError that keeps a reference to the
+// underlying error. I suppose it's a wrapper of any? :)
+type TechnologyIntegrationError = HttpConnectionError | SqlError | FsError;
+
+export const fetchFullDenominationFromPostgres = (dbConfig: PostgresConfig): (userId: string) => TaskEither<TechnologyIntegrationError, string> =>
   (userId: string) => 
     TE.left(httpConnectionError(400, "Irrelevant, I'm just forcing an error"));
 
-export const fetchTimeOfDayForUserFromPostgres = (dbConfig: PostgresConfig): (userId: string) => TaskEither<HttpConnectionError | SqlError, 'morning' | 'afternoon' | 'evening' | 'night'> =>
+export const fetchTimeOfDayForUserFromPostgres = (dbConfig: PostgresConfig): (userId: string) => TaskEither<TechnologyIntegrationError, 'morning' | 'afternoon' | 'evening' | 'night'> =>
   (userId: string) =>
     TE.left(sqlError(3029, "Irrelevant, I'm just forcing an error"));
 
 export const greetByTimeOfDay = (
   userId: string,
-  fetchFullDenomination: (userId: string) => TaskEither<HttpConnectionError | SqlError, string>,
-  fetchTimeOfDay: (userId: string) => TaskEither<HttpConnectionError | SqlError, 'morning' | 'afternoon' | 'evening' | 'night'>,
-): TaskEither<HttpConnectionError | FsError | SqlError, string> =>
+  fetchFullDenomination: (userId: string) => TaskEither<TechnologyIntegrationError, string>,
+  fetchTimeOfDay: (userId: string) => TaskEither<TechnologyIntegrationError, 'morning' | 'afternoon' | 'evening' | 'night'>,
+): TaskEither<TechnologyIntegrationError, string> =>
   pipe(
     TE.Do,
     TE.bindW('fullDenomination', () =>
