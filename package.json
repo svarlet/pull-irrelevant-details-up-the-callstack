@@ -1,0 +1,19 @@
+{
+  "name": "fp-ts-template",
+  "version": "1.0.0",
+  "description": "A Typescript template with `fp-ts` and `io-ts` pre-installed",
+  "main": "index.html",
+  "scripts": {
+    "start": "parcel index.html --open",
+    "build": "parcel build index.html"
+  },
+  "dependencies": {
+    "fp-ts": "2.13.1"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.6.1"
+  },
+  "keywords": [
+    "fp-ts"
+  ]
+}
