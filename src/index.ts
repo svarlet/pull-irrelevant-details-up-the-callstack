@@ -43,11 +43,12 @@ export const greetByTimeOfDay = (
   );
 
 pipe(
-  'af8c4600-46a8-4b80-a4d3-9583b4f1085b', //user id
-  greetByTimeOfDay,
+  TE.Do,
+  TE.bind('userId', () => TE.of('af8c4600-46a8-4b80-a4d3-9583b4f1085b')),
+  TE.bindW('greeting', ({userId}) => greetByTimeOfDay(userId)),
   TE.match(
     (error) =>
       console.error('Oops something went wrong: ' + JSON.stringify(error)),
-    (greeting) => console.log(greeting)
+    ({greeting}) => console.log(greeting)
   )
 )();
