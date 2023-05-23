@@ -14,7 +14,7 @@ export const fetchFullDenominationFromPostgres = (dbConfig: PostgresConfig): (us
   (userId: string) => 
     TE.left(httpConnectionError(400, "Irrelevant, I'm just forcing an error"));
 
-export const fetchTimeOfDayForUser = (dbConfig: PostgresConfig): (userId: string) => TaskEither<HttpConnectionError | SqlError, 'morning' | 'afternoon' | 'evening' | 'night'> =>
+export const fetchTimeOfDayForUserFromPostgres = (dbConfig: PostgresConfig): (userId: string) => TaskEither<HttpConnectionError | SqlError, 'morning' | 'afternoon' | 'evening' | 'night'> =>
   (userId: string) =>
     TE.left(sqlError(3029, "Irrelevant, I'm just forcing an error"));
 
@@ -41,7 +41,7 @@ pipe(
   TE.Do,
   TE.bind('userId', () => TE.of('af8c4600-46a8-4b80-a4d3-9583b4f1085b')),
   TE.bind('dbConfig', () => readDbConfigFromFs()),
-  TE.bindW('greeting', ({userId, dbConfig}) => greetByTimeOfDay(userId, fetchFullDenominationFromPostgres(dbConfig), fetchTimeOfDayForUser(dbConfig))),
+  TE.bindW('greeting', ({userId, dbConfig}) => greetByTimeOfDay(userId, fetchFullDenominationFromPostgres(dbConfig), fetchTimeOfDayForUserFromPostgres(dbConfig))),
   TE.match(
     (error) =>
       console.error('Oops something went wrong: ' + JSON.stringify(error)),
