@@ -10,33 +10,33 @@ import {postgresConfig, PostgresConfig} from './PostgresConfig';
 export const readDbConfigFromFs = (): TaskEither<FsError, PostgresConfig> =>
   TE.right(postgresConfig(new URL('https://rds.aws.com/abc123')));
 
-// I don't know enough TypeScript yet to do this part correctly.
-// Turn this into an object and each "low-level" error has the responsibility
-// of turning itself into a TechnologyIntegrationError that keeps a reference to the
-// underlying error. I suppose it's a wrapper of any? :)
-type TechnologyIntegrationError = HttpConnectionError | SqlError | FsError;
+type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
 
-export const fetchFullDenominationFromPostgres = (dbConfig: PostgresConfig): (userId: string) => TaskEither<TechnologyIntegrationError, string> =>
-  (userId: string) => 
-    TE.left(httpConnectionError(400, "Irrelevant, I'm just forcing an error"));
+type TechnologyIntegrationError2<E> = { error: E };
 
-export const fetchTimeOfDayForUserFromPostgres = (dbConfig: PostgresConfig): (userId: string) => TaskEither<TechnologyIntegrationError, 'morning' | 'afternoon' | 'evening' | 'night'> =>
-  (userId: string) =>
-    TE.left(sqlError(3029, "Irrelevant, I'm just forcing an error"));
+export const fetchFullDenominationFromPostgres =
+  (dbConfig: PostgresConfig) =>
+  (userId: string): TaskEither<TechnologyIntegrationError2<HttpConnectionError>, string> =>
+    TE.left({error: httpConnectionError(400, "Irrelevant, I'm just forcing an error")});
 
-export const greetByTimeOfDay = (
+export const fetchTimeOfDayForUserFromPostgres =
+  (dbConfig: PostgresConfig) =>
+  (userId: string): TaskEither<TechnologyIntegrationError2<SqlError>, TimeOfDay> =>
+    TE.left({error: sqlError(3029, "Irrelevant, I'm just forcing an error")});
+
+export const greetByTimeOfDay = <E1, E2>(
   userId: string,
-  fetchFullDenomination: (userId: string) => TaskEither<TechnologyIntegrationError, string>,
-  fetchTimeOfDay: (userId: string) => TaskEither<TechnologyIntegrationError, 'morning' | 'afternoon' | 'evening' | 'night'>,
-): TaskEither<TechnologyIntegrationError, string> =>
+  fetchFullDenomination: (
+    userId: string
+  ) => TaskEither<TechnologyIntegrationError2<E1>, string>,
+  fetchTimeOfDay: (
+    userId: string
+  ) => TaskEither<TechnologyIntegrationError2<E2>, TimeOfDay>
+): TaskEither<TechnologyIntegrationError2<E1 | E2>, string> =>
   pipe(
     TE.Do,
-    TE.bindW('fullDenomination', () =>
-      fetchFullDenomination(userId)
-    ),
-    TE.bindW('timeOfDayForUser', () =>
-      fetchTimeOfDay(userId)
-    ),
+    TE.bindW('fullDenomination', () => fetchFullDenomination(userId)),
+    TE.bindW('timeOfDayForUser', () => fetchTimeOfDay(userId)),
     TE.map(
       ({fullDenomination, timeOfDayForUser}) =>
         `Good ${timeOfDayForUser}, ${fullDenomination}`
@@ -47,7 +47,13 @@ pipe(
   TE.Do,
   TE.bind('userId', () => TE.of('af8c4600-46a8-4b80-a4d3-9583b4f1085b')),
   TE.bind('dbConfig', () => readDbConfigFromFs()),
-  TE.bindW('greeting', ({userId, dbConfig}) => greetByTimeOfDay(userId, fetchFullDenominationFromPostgres(dbConfig), fetchTimeOfDayForUserFromPostgres(dbConfig))),
+  TE.bindW('greeting', ({userId, dbConfig}) =>
+    greetByTimeOfDay(
+      userId,
+      fetchFullDenominationFromPostgres(dbConfig),
+      fetchTimeOfDayForUserFromPostgres(dbConfig)
+    )
+  ),
   TE.match(
     (error) =>
       console.error('Oops something went wrong: ' + JSON.stringify(error)),
